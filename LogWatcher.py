@@ -3,6 +3,8 @@ import time
 import re
 from datetime import datetime
 import sys
+import mmap
+import os
 
 """ Background Color """
 On_Black = '\033[40m'
@@ -26,11 +28,12 @@ class LogWatcher():
         self.interval = interval
         self.logfile = logfile
         self.address = address
+        self.filesize = os.path.getsize(self.logfile)
 
     def cls(self):
         """ Clears the screen and prints the headers with current time on top of the screen """
         print "\033[H\033[J"
-        print time.strftime('%d/%b/%Y:%H:%M:%S')
+        print "CURRENT TIME:  {0:^18}\nLOG FILE SIZE: {1}".format(str(time.strftime('%d/%b/%Y:%H:%M:%S')), str(self.filesize))
         if self.address:
             headers = "|  ID  | STATUS |        FIRST         |        LAST          |{0:^32}|{1:^17}|".format("DELTA","IP")
             header_line = "+======+========+======================+======================+================================+=================+"
@@ -54,6 +57,29 @@ class LogWatcher():
         d2 = datetime.strptime(last_seen, fmt)
         return d2 - d1
 
+    def update_delta(self):
+        """
+        Updates the delta of an ID
+
+        :return: updated dataframe with delta per ID
+        """
+
+        for k in self.data.keys():
+            now = time.strftime('%d/%b/%Y:%H:%M:%S')
+            uniq_id = self.data.get(k)[0]
+            status = self.data.get(k)[1]
+            first_seen = self.data.get(k)[2]
+            last_seen = self.data.get(k)[3]
+            delta = self.time_diff(last_seen, now)
+
+            if self.address:
+                ip = self.data.get(k)[5]
+                info = [uniq_id, "{0:^4}".format(status), first_seen, last_seen, "{0:^30}".format(delta), "{0:^17}".format(ip)]
+            else:
+                info = [uniq_id, "{0:^4}".format(status), first_seen, last_seen, "{0:^30}".format(delta)]
+
+            self.data.update({info[0]: info})
+
     def read_initial_log(self):
         """
         :return: nothing, it updates the main Data dataframe with most up to date time per ID
@@ -70,30 +96,38 @@ class LogWatcher():
     def tailf_log(self):
         """
         Main tailf function to clear the screen and writes the status.
-
-        <<< TO BE FIXED WITH REAL TAILF >>>
-
         :return: Nothing
         """
+        n = 5
+        size = os.path.getsize(self.logfile)
+        if size > self.filesize:
+            self.filesize = size
+            with open(self.logfile, "rb") as f:
+                fm = mmap.mmap(f.fileno(), 0, mmap.MAP_SHARED, mmap.PROT_READ)
+                try:
+                    for i in xrange(size - 1, -1, -1):
+                        if fm[i] == '\n':
+                            n -= 1
+                            if n == -1:
+                                break
+                    lines = fm[i + 1 if i else 0:].splitlines()
+                except:
+                    pass
+                finally:
+                    fm.close()
 
-        # Start editing part
-        with open(self.logfile, "r") as fd:
-            f = fd.read()
-            for line in f.split("\n"):
+                for line in lines:
 
-            # End editing part
-            # Could be replaced with the other log watcher but instead of printing the lines
-            # it can run the matcher and update_data methods on it.
-            # Warning: this suggestion is not tested
+                    parts = self.matcher(line)
+                    if parts:
+                        print parts
+                        self.update_data(parts)
 
-                parts = self.matcher(line)
-                if parts:
-                    self.update_data(parts)
-        time.sleep(self.interval)
+        else:
+            self.update_delta()
 
         self.cls()
         self.status()
-
 
     def how_old(self, delta):
         """
@@ -146,6 +180,7 @@ class LogWatcher():
                     print "| {} |  {}  | {} | {} | {} |{}|".format(line[0], line[1], line[2], line[3], delta, line[5])
                 else:
                     print "| {} |  {}  | {} | {} | {} |".format(line[0], line[1], line[2], line[3], delta)
+        time.sleep(self.interval)
 
     def update_data(self, parts):
         """
