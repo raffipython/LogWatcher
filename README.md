@@ -1,4 +1,24 @@
 # LogWatcher
+
+To use the log generator:
+    python2.7 log_generator.py -n 1000 -s 0.1 >> test.log
+To use the log watcher:
+    python2.7 LogWatcher.py -f test.log -v -i 1 -a
+    
+======================================================================
+
+usage:  Generic Log Watcher  [-h] [-a] [-f FILE] [-i INTERVAL] [-v]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -a, --address         Prints the IP address of last log line per ID
+  -f FILE, --file FILE  Log file full path and name
+  -i INTERVAL, --interval INTERVAL
+                        Interval in N seconds to re-read the log file
+  -v, --verbose         Prints all the IDs no matter how old
+
+======================================================================
+
 Generic Log Watcher
 NAME
     LogWatcher
@@ -68,9 +88,16 @@ CLASSES
      |      :param last_seen:   datetime string
      |      :return:            difference in time between the two variables above
 
+
 DATA
+
     On_Black = '\x1b[40m'
+    
     On_Cyan = '\x1b[46m'
+    
     On_Purple = '\x1b[45m'
+    
     On_Red = '\x1b[41m'
+    
     On_Yellow = '\x1b[43m'
+    
