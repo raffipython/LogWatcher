@@ -1,5 +1,7 @@
 # LogWatcher
 
+# FOR TESTING ONLY
+
 To use the log generator:
     python2.7 log_generator.py -n 1000 -s 0.1 >> test.log
     
