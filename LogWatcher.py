@@ -274,6 +274,6 @@ if __name__ == '__main__':
             try:
                 lw.tailf_log()
             except:
-                "Print might found error in a log file line."
+                print("Might found error in a log file line.")
     except KeyboardInterrupt:
         print('interrupted!')
